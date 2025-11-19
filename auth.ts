@@ -2,11 +2,11 @@
 import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/db/prisma';
-import { compare } from './lib/encrypt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compareSync } from 'bcrypt-ts-edge';
+import type { NextAuthConfig } from "next-auth";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const config ={ 
   pages: {
     signIn: '/sign-in',
     error: '/sign-in',
@@ -61,7 +61,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.role = token.role;
       session.user.name = token.name;
 
-      console.log(token);
       // If there is an update, set the user name
       if (trigger === 'update') {
         session.user.name = user.name;
@@ -89,4 +88,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     }
   },
-});
+} satisfies NextAuthConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(config);

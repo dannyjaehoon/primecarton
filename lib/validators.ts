@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import { formatNumberWidthDecimal } from './utils';
 
-const current = z
+const currency = z
         .string()
         .refine((value) => /^\d+(\.\d{2})?$/.test(formatNumberWidthDecimal(Number(value))), 
     'Price must have exacely two decimal places');
@@ -17,7 +17,7 @@ export const insertProductSchema = z.object({
     images: z.array(z.string()).min(1, 'Product must have at least one image'),
     isFeatured: z.boolean(),
     banner: z.string().nullable(),
-    price: current,
+    price: currency,
 });
 
 // Schema for signing users in
@@ -40,3 +40,23 @@ export const signUpFormSchema = z
     message: "Passwords don't match",
     path: ['confirmPassword'],
   });
+
+
+export const cartItemSchema = z.object({
+  productId: z.string().min(1, 'product is required'),
+  name: z.string().min(1, 'Name is required'),
+  slug: z.string().min(1, 'Slug is required'),
+  qty: z.number().int().nonnegative('Quantity must be a positive number'),
+  image: z.string().min(1, 'Image is required'),
+  price: currency
+})
+
+export const insertCartSchema = z.object({
+  items: z.array(cartItemSchema),
+  itemsPrice : currency,
+  totalPrice: currency,
+  shippingPrice: currency,
+  taxPrice: currency,
+  sessionCartId: z.string().min(1, 'Session cart id is required'),
+  userId : z.string().optional().nullable()
+})
