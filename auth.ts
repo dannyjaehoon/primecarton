@@ -5,6 +5,7 @@ import { prisma } from '@/db/prisma';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compareSync } from 'bcrypt-ts-edge';
 import type { NextAuthConfig } from "next-auth";
+import { cookies } from 'next/headers';
 
 export const config ={ 
   pages: {
@@ -84,6 +85,31 @@ export const config ={
             data: {name: token.name}
           })
         }
+        if(trigger === 'signIn' || trigger === 'signUp') {
+          const cookiesObject = await cookies();
+          const sessionCartId = cookiesObject.get('sessionCartId')?.value;
+          
+          if(sessionCartId) {
+            const sessionCart = await prisma.cart.findFirst({
+              where: {sessionCartId}
+            })
+            if(sessionCart) {
+              // delete current user cart
+              await prisma.cart.deleteMany({
+                where:{userId: user.id},
+              });
+              // assign new cart
+              await prisma.cart.update({
+                where:{id:sessionCart.id},
+                data: {userId: user.id}
+              })
+
+            }
+          }
+        }
+      }
+      if (trigger === 'update') {
+        session.user.name = user.name;
       }
       return token;
     }

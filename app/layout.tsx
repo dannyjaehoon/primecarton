@@ -10,7 +10,7 @@ const inter = Inter({subsets:['latin']});
 
 export const metadata: Metadata = {
   title: {
-    template: `$s | Prime Carton`,
+    template: `Prime Carton`,
     default: APP_NAME
   },
   description: APP_DESCRIPTION,
