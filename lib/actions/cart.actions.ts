@@ -133,7 +133,7 @@ export async function getMyCart() {
     const cart = await prisma.cart.findFirst({
         where: userId ? { userId : userId} : {sessionCartId : sessionCartId}
     });
-
+    
     if(!cart) return undefined;
 
     return convertToPlainObject({

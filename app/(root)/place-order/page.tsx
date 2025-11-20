@@ -28,6 +28,7 @@ const PlaceOrderPage = async () => {
     const cart = await getMyCart();
     const session = await auth();
     const userId = session?.user?.id;
+
     if(!userId) throw new Error('User not found');
 
     const user = await getUserById(userId);

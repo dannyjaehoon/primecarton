@@ -17,9 +17,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useTransition } from 'react';
+import { PayPalButtons, PayPalScriptProvider, usePayPalScriptReducer} from '@paypal/react-paypal-js';
+import { createPayPalOrder, approvePayPalOrder } from '@/lib/actions/order.actions';
+import { useRouter } from 'next/navigation';
 
-
-const OrderDetailsTable = ({order} : {order : Order}) => {
+const OrderDetailsTable = ({order, paypalClientId} : {order : Order, paypalClientId:string}) => {
     const {
         shippingAddress,
         orderitems,
@@ -36,88 +38,44 @@ const OrderDetailsTable = ({order} : {order : Order}) => {
     } = order;
 
     const { toast } = useToast();
+    const router = useRouter();
 
-    // const PrintLoadingState = () => {
-    //     const [{ isPending, isRejected }] = usePayPalScriptReducer();
-    //     let status = '';
+    const PrintLoadingState = () => {
+        const [{ isPending, isRejected }] = usePayPalScriptReducer();
+        let status = '';
 
-    //     if (isPending) {
-    //     status = 'Loading PayPal...';
-    //     } else if (isRejected) {
-    //     status = 'Error Loading PayPal';
-    //     }
-    //     return status;
-    // };
+        if (isPending) {
+          status = 'Loading PayPal...';
+        } else if (isRejected) {
+          status = 'Error Loading PayPal';
+        }
+        return status;
+    };
 
-    // const handleCreatePayPalOrder = async () => {
-    //     const res = await createPayPalOrder(order.id);
+    const handleCreatePayPalOrder = async () => {
+        const res = await createPayPalOrder(order.id);
 
-    //     if (!res.success) {
-    //     toast({
-    //         variant: 'destructive',
-    //         description: res.message,
-    //     });
-    //     }
+        if (!res.success) {
+        toast({
+            variant: 'destructive',
+            description: res.message,
+        });
+        }
 
-    //     return res.data;
-    // };
+        return res.data;
+    };
 
-    // const handleApprovePayPalOrder = async (data: { orderID: string }) => {
-    //     const res = await approvePayPalOrder(order.id, data);
+    const handleApprovePayPalOrder = async (data: { orderID: string }) => {
+      console.log("handleApprovePayPalOrder trigered");
+        const res = await approvePayPalOrder(order.id, data);
 
-    //     toast({
-    //     variant: res.success ? 'default' : 'destructive',
-    //     description: res.message,
-    //     });
-    // };
+        toast({
+          variant: res.success ? 'default' : 'destructive',
+          description: res.message,
+        });
+        console.log("handleApprovePayPalOrder done successfully");
+    };
 
-    // // Button to mark order as paid
-    // const MarkAsPaidButton = () => {
-    //     const [isPending, startTransition] = useTransition();
-    //     const { toast } = useToast();
-
-    //     return (
-    //     <Button
-    //         type='button'
-    //         disabled={isPending}
-    //         onClick={() =>
-    //         startTransition(async () => {
-    //             const res = await updateOrderToPaidCOD(order.id);
-    //             toast({
-    //             variant: res.success ? 'default' : 'destructive',
-    //             description: res.message,
-    //             });
-    //         })
-    //         }
-    //     >
-    //         {isPending ? 'processing...' : 'Mark As Paid'}
-    //     </Button>
-    //     );
-    // };
-
-    // // Button to mark order as delivered
-    // const MarkAsDeliveredButton = () => {
-    //     const [isPending, startTransition] = useTransition();
-    //     const { toast } = useToast();
-
-    //     return (
-    //     <Button
-    //         type='button'
-    //         disabled={isPending}
-    //         onClick={() =>
-    //         startTransition(async () => {
-    //             const res = await deliverOrder(order.id);
-    //             toast({
-    //             variant: res.success ? 'default' : 'destructive',
-    //             description: res.message,
-    //             });
-    //         })
-    //         }
-    //     >
-    //         {isPending ? 'processing...' : 'Mark As Delivered'}
-    //     </Button>
-    //     );
-    // };
     return <>
       <h1 className='py-4 text-2xl'>Order {formatId(id)}</h1>
       <div className='grid md:grid-cols-3 md:gap-5'>
@@ -168,7 +126,7 @@ const OrderDetailsTable = ({order} : {order : Order}) => {
                     <TableRow key={item.slug}>
                       <TableCell>
                         <Link
-                          href={`/product/{item.slug}`}
+                          href={`/product/${item.slug}`}
                           className='flex items-center'
                         >
                           <Image
@@ -214,7 +172,7 @@ const OrderDetailsTable = ({order} : {order : Order}) => {
               </div>
 
               {/* PayPal Payment */}
-              {/* {!isPaid && paymentMethod === 'PayPal' && (
+              {!isPaid && paymentMethod === 'PayPal' && (
                 <div>
                   <PayPalScriptProvider options={{ clientId: paypalClientId }}>
                     <PrintLoadingState />
@@ -224,22 +182,7 @@ const OrderDetailsTable = ({order} : {order : Order}) => {
                     />
                   </PayPalScriptProvider>
                 </div>
-              )} */}
-
-              {/* Stripe Payment */}
-              {/* {!isPaid && paymentMethod === 'Stripe' && stripeClientSecret && (
-                <StripePayment
-                  priceInCents={Number(order.totalPrice) * 100}
-                  orderId={order.id}
-                  clientSecret={stripeClientSecret}
-                />
-              )} */}
-
-              {/* Cash On Delivery */}
-              {/* {isAdmin && !isPaid && paymentMethod === 'CashOnDelivery' && (
-                <MarkAsPaidButton />
               )}
-              {isAdmin && isPaid && !isDelivered && <MarkAsDeliveredButton />} */}
             </CardContent>
           </Card>
         </div>

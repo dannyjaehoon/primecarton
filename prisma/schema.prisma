@@ -3,8 +3,7 @@
 // npx prisma migrate dev --name add_user_based_tables : Creates and applies a new database migration based on the changes in your schema.prisma, and saves it with the name add_user_based_tables.
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
