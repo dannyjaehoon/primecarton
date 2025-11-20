@@ -1,12 +1,9 @@
-
 // After updating the table info, use the following commands to apply to neon postgre 
 // npx prisma generate : reads your Prisma schema file (schema.prisma) and generates the Prisma Client, which is the TypeScript/JavaScript library you use in your code to interact with your database.
 // npx prisma migrate dev --name add_user_based_tables : Creates and applies a new database migration based on the changes in your schema.prisma, and saves it with the name add_user_based_tables.
 
-
 generator client {
-  provider        = "prisma-client"
-  output          = "../lib/generated/prisma"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -16,20 +13,21 @@ datasource db {
 }
 
 model Product {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String
-  slug        String   @unique(map: "product_slug_idx")
+  slug        String      @unique(map: "product_slug_idx")
   category    String
   images      String[]
   brand       String
   description String
   stock       Int
-  price       Decimal  @default(0) @db.Decimal(12, 2)
-  rating      Decimal  @default(0) @db.Decimal(3, 2)
-  numReviews  Int      @default(0)
-  isFeatured  Boolean  @default(false)
+  price       Decimal     @default(0) @db.Decimal(12, 2)
+  rating      Decimal     @default(0) @db.Decimal(3, 2)
+  numReviews  Int         @default(0)
+  isFeatured  Boolean     @default(false)
   banner      String?
-  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  createdAt   DateTime    @default(now()) @db.Timestamp(6)
+  OrderItem   OrderItem[]
 }
 
 model User {
@@ -44,11 +42,12 @@ model User {
   paymentMethod String?
   createdAt     DateTime  @default(now()) @db.Timestamp(6)
   updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
   account       Account[]
   session       Session[]
-  cart          Cart[]
+  Cart          Cart[]
+  Order         Order[]
 }
-
 
 model Account {
   userId            String  @db.Uuid
@@ -90,16 +89,48 @@ model VerificationToken {
 }
 
 model Cart {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId String? @db.Uuid
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?  @db.Uuid
   sessionCartId String
-  items Json[] @default([]) @db.Json
-  itemsPrice Decimal @db.Decimal(12, 2)
-  totalPrice Decimal @db.Decimal(12, 2)
-  shippingPrice Decimal @db.Decimal(12, 2)
-  taxPrice Decimal @db.Decimal(12, 2)
-  createdAt DateTime @default(now()) @db.Timestamp(6)
+  items         Json[]   @default([]) @db.Json
+  itemsPrice    Decimal  @db.Decimal(12, 2)
+  totalPrice    Decimal  @db.Decimal(12, 2)
+  shippingPrice Decimal  @db.Decimal(12, 2)
+  taxPrice      Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now()) @db.Timestamp(6)
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
+model Order {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String      @db.Uuid
+  shippingAddress Json        @db.Json
+  paymentMethod   String
+  paymentResult   Json?       @db.Json
+  itemsPrice      Decimal     @db.Decimal(12, 2)
+  shippingPrice   Decimal     @db.Decimal(12, 2)
+  taxPrice        Decimal     @db.Decimal(12, 2)
+  totalPrice      Decimal     @db.Decimal(12, 2)
+  isPaid          Boolean     @default(false)
+  paidAt          DateTime?   @db.Timestamp(6)
+  isDelivered     Boolean     @default(false)
+  deliveredAt     DateTime?   @db.Timestamp(6)
+  createdAt       DateTime    @default(now()) @db.Timestamp(6)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderitems      OrderItem[]
+}
+
+model OrderItem {
+  orderId   String  @db.Uuid
+  productId String  @db.Uuid
+  qty       Int
+  price     Decimal @db.Decimal(12, 2)
+  name      String
+  slug      String
+  image     String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([orderId, productId], map: "orderitems_orderId_productId_pk")
 }

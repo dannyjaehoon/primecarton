@@ -1,7 +1,7 @@
 
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { PrismaClient } from "@/lib/generated/prisma/client";
+import { PrismaClient } from '@prisma/client';
 import ws from 'ws';
 
 // Sets up WebSocket connections, which enables Neon to use WebSocket communication.
@@ -27,5 +27,64 @@ export const prisma = new PrismaClient({ adapter }).$extends({
         },
       },
     },
+    cart: {
+      itemsPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      },
+      shippingPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      },
+      taxPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      },
+      totalPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      }
+    },
+    order: {
+      itemsPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      },
+      shippingPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      },
+      taxPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      },
+      totalPrice: {
+        needs: {itemsPrice: true},
+        compute(cart){
+          return cart.itemsPrice.toString()
+        }
+      }
+    },
+    orderItem: {
+      price: {
+        compute(cart){
+          return cart.price.toString()
+        }
+      }
+    }
   },
 });
