@@ -1,13 +1,16 @@
 import ProductList from '@/components/shared/product/product-list';
-import { getLastestProducts } from '@/lib/actions/product.actions';
+import { getFeaturedProducts, getLastestProducts } from '@/lib/actions/product.actions';
 import { LATEST_PRODUCTS_LIMIT } from '@/lib/constants';
+import ProductCarousel from '@/components/shared/product/product-carousel';
 
 const Homepage = async () => {
-  const latestProudct = await getLastestProducts();
+  const latestProduct = await getLastestProducts();
+  const featuredProduct = await getFeaturedProducts();
 
   return (
     <>
-      <ProductList data={latestProudct} title='Newest Arrivals' limit={LATEST_PRODUCTS_LIMIT}></ProductList>
+      {featuredProduct.length > 0 && <ProductCarousel data={featuredProduct}/>}
+      <ProductList data={latestProduct} title='Newest Arrivals' limit={LATEST_PRODUCTS_LIMIT}></ProductList>
     </>
   )
 }
