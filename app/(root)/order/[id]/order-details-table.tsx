@@ -21,7 +21,7 @@ import { PayPalButtons, PayPalScriptProvider, usePayPalScriptReducer} from '@pay
 import { createPayPalOrder, approvePayPalOrder, updateOrderToPaidCOD, deliverOrder } from '@/lib/actions/order.actions';
 import { useRouter } from 'next/navigation';
 
-const OrderDetailsTable = ({order, paypalClientId, isAdmin} : {order : Order, paypalClientId:string, isAdmin:boolean}) => {
+const OrderDetailsTable = ({order, paypalClientId, isAdmin} : {order : Omit<Order, 'paymentResult'>, paypalClientId:string, isAdmin:boolean}) => {
     const {
         shippingAddress,
         orderitems,
