@@ -6,15 +6,19 @@ import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import SignUpForm from './sign-up-form';
+import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
     title : 'Sign Up'
 }
 
 const SignUpPage = async (props: {searchParams: Promise<{
-    callbackUrl: string
+    callbackUrl: string;
+    email?: string;
+    verified?: string;
 }>}) => {
-    const { callbackUrl } = await props.searchParams;
+    const { callbackUrl, email, verified } = await props.searchParams;
+    const verifiedEmailFromCookie = (await cookies()).get('verifiedEmail')?.value;
     const session = await auth();
     if(session) {
         return redirect(callbackUrl || '/');
@@ -30,7 +34,10 @@ const SignUpPage = async (props: {searchParams: Promise<{
                 <CardDescription className='text-center'>Enter your information below to sign up</CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
-                <SignUpForm/>
+                <SignUpForm
+                    initialEmail={email}
+                    verifiedEmail={verified === '1' ? (email || verifiedEmailFromCookie) : verifiedEmailFromCookie}
+                />
             </CardContent>
         </Card>
     </div>;

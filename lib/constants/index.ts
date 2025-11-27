@@ -12,8 +12,11 @@ export const signInDefaultValues = {
 export const signUpDefaultValues = {
     name:'',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
+    termsAgreed: false,
+    marketingConsent: false,
 }
 
 export const shippingAddressDefaultValues = {
@@ -54,3 +57,4 @@ export const reviewFormDefaultValues = {
 };
 
 export const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+export const EMAIL_VERIFICATION_TOKEN_EXPIRES_IN_HOURS = Number(process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN_HOURS) || 24;

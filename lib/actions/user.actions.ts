@@ -6,21 +6,31 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { hashSync } from 'bcrypt-ts-edge';
 import { prisma } from "@/db/prisma";
 import { formatError } from "../utils";
-import z, { success, ZodError } from "zod";
+import z, { ZodError } from "zod";
 import { ShippingAddress } from "@/types";
 import { PAGE_SIZE } from "../constants";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
+import { sendVerificationEmail } from "@/email";
+import { createEmailVerificationToken, hashVerificationToken } from "../auth/email-verification";
+import { encryptText } from "../encrypt";
+import { cookies } from "next/headers";
 
 // sign in the user with credentials
 export async function signInWithCredentials(prevState : unknown, formDate: FormData) {
     try {
-        const user = signInFormSchema.parse({
+        const credentials = signInFormSchema.parse({
             email: formDate.get('email'),
             password: formDate.get('password')
         });
+        const callbackUrl = typeof formDate.get('callbackUrl') === 'string'
+          ? (formDate.get('callbackUrl') as string)
+          : '/';
 
-        await signIn('credentials', user);
+        await signIn('credentials', {
+          ...credentials,
+          redirectTo: callbackUrl || '/',
+        });
 
         return { success: true, message: 'Signed in successfully' }
     } catch (error){
@@ -39,28 +49,53 @@ export async function signOutUser() {
 //sign up a user 
 export async function signUpUser(prevState: unknown, formData: FormData) {
     try {
+        const cookieStore = await cookies();
         const user = signUpFormSchema.parse({
             name: formData.get('name'),
             email: formData.get('email'),
+            phone: formData.get('phone'),
             password: formData.get('password'),
             confirmPassword: formData.get('confirmPassword'),
+            termsAgreed: formData.get('termsAgreed'),
+            marketingConsent: formData.get('marketingConsent'),
         });
 
-        const plainPassword = user.password;
-        user.password = hashSync(user.password, 10);
+        const verifiedEmailCookie = cookieStore.get('verifiedEmail')?.value;
+        if (!verifiedEmailCookie || verifiedEmailCookie !== user.email) {
+            return { success: false, message: 'Please verify your email before signing up.' };
+        }
+
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+
+        if (existingUser) {
+          return { success: false, message: 'Email already registered. Please sign in.' };
+        }
+
+        const hashedPassword = hashSync(user.password, 10);
+        const encryptedPhone = user.phone ? await encryptText(user.phone) : null;
+
         await prisma.user.create({
             data: {
                 name: user.name,
                 email: user.email,
-                password: user.password,
+                password: hashedPassword,
+                phone: encryptedPhone ?? undefined,
+                termsAgreed: user.termsAgreed,
+                termsAgreedAt: user.termsAgreed ? new Date() : null,
+                marketingConsent: user.marketingConsent,
+                marketingConsentAt: user.marketingConsent ? new Date() : null,
             }
         })
-        await signIn('credentials', {
-            email:user.email,
-            password: plainPassword,
-        })
 
-        return {success: true, message: 'User registered successfully'};
+        cookieStore.delete('verifiedEmail');
+
+        return {
+          success: true,
+          email: user.email,
+          message: 'Account created. You can sign in now.',
+        };
     } catch (error) {
 
         if(isRedirectError(error)) {
@@ -69,6 +104,77 @@ export async function signUpUser(prevState: unknown, formData: FormData) {
 
         return { success: false, message : formatError(error)};
     }
+}
+
+export async function verifyEmailToken(token: string) {
+  try {
+    const hashedToken = hashVerificationToken(token);
+
+    const verificationRecord = await prisma.verificationToken.findFirst({
+      where: { token: hashedToken },
+    });
+
+    if (!verificationRecord) {
+      return { success: false, message: 'Invalid or expired verification link' };
+    }
+
+    if (verificationRecord.expires < new Date()) {
+      await prisma.verificationToken.delete({
+        where: {
+          identifier_token: {
+            identifier: verificationRecord.identifier,
+            token: hashedToken,
+          },
+        },
+      });
+
+      return {
+        success: false,
+        message: 'Verification link has expired. Please sign up again.',
+      };
+    }
+
+    await prisma.verificationToken.delete({
+      where: {
+        identifier_token: {
+          identifier: verificationRecord.identifier,
+          token: hashedToken,
+        },
+      },
+    });
+
+    return { success: true, message: 'Email verified. You can now sign in.' };
+  } catch (error) {
+    return { success: false, message: formatError(error) };
+  }
+}
+
+export async function requestEmailVerification(
+  prevState: { success: boolean; message: string; verified: boolean },
+  formData: FormData
+) {
+  try {
+    const rawEmail = formData.get('email');
+
+    if (!rawEmail || typeof rawEmail !== 'string') {
+      return { success: false, message: 'Please enter an email before verifying.', verified: false };
+    }
+
+    const email = z.string().email().parse(rawEmail);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (user?.id) {
+      return { success: true, message: 'Email already verified. You can sign in.', verified: true };
+    }
+
+    const token = await createEmailVerificationToken(email);
+    await sendVerificationEmail({ email, token });
+
+    return { success: true, message: 'Verification email sent. Check your inbox.', verified: false };
+  } catch (error) {
+    return { success: false, message: formatError(error), verified: false };
+  }
 }
 
 // get a use by the Id

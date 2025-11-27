@@ -31,23 +31,27 @@ model Product {
 }
 
 model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name          String    @default("NO_NAME")
-  email         String    @unique(map: "user_email_idx")
-  emailVerified DateTime? @db.Timestamp(6)
-  image         String?
-  password      String?
-  role          String    @default("user")
-  address       Json?     @db.Json
-  paymentMethod String?
-  createdAt     DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
-  account       Account[]
-  session       Session[]
-  Cart          Cart[]
-  Order         Order[]
-  reviews       Review[]
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String    @default("NO_NAME")
+  email              String    @unique(map: "user_email_idx")
+  image              String?
+  password           String?
+  phone              String?
+  termsAgreed        Boolean   @default(false)
+  marketingConsent   Boolean   @default(false)
+  termsAgreedAt      DateTime? @db.Timestamp(6)
+  marketingConsentAt DateTime? @db.Timestamp(6)
+  role               String    @default("user")
+  address            Json?     @db.Json
+  paymentMethod      String?
+  createdAt          DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  account            Account[]
+  session            Session[]
+  Cart               Cart[]
+  Order              Order[]
+  reviews            Review[]
 }
 
 model Account {
