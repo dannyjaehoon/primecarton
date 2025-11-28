@@ -9,6 +9,8 @@ import { useActionState } from "react";
 import { useFormStatus } from 'react-dom';
 import { signInWithCredentials } from "@/lib/actions/user.actions";
 import { useSearchParams} from "next/navigation";
+import { signIn } from "next-auth/react";
+import { FcGoogle } from "react-icons/fc";
 
 const CredentialsSigninForm = () => {
     const [data, action] = useActionState(signInWithCredentials, { success: false, message: ''});
@@ -28,6 +30,22 @@ const CredentialsSigninForm = () => {
     return <form action={action}>
         <Input type='hidden' name="callbackUrl" value={callbackUrl}></Input>
         <div className="space-y-6">
+            <div className="space-y-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={() => signIn('google', { callbackUrl })}
+                >
+                    <FcGoogle className="h-5 w-5" aria-hidden />
+                    Continue with Google
+                </Button>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="flex-1 border-t border-border" />
+                    <span>or</span>
+                    <span className="flex-1 border-t border-border" />
+                </div>
+            </div>
             <div>
                 <Label htmlFor='email' >Email</Label>
                 <Input id='email' name='email' type='email' required autoComplete="email" defaultValue={signInDefaultValues.email}/>
@@ -39,6 +57,7 @@ const CredentialsSigninForm = () => {
             <div>
                 <SignInButton/>
             </div>
+            
             
             { data && !data.success && (
                 <div className="text-center text-destructive">

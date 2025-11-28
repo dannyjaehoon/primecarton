@@ -15,6 +15,7 @@ import { sendVerificationEmail } from "@/email";
 import { createEmailVerificationToken, hashVerificationToken } from "../auth/email-verification";
 import { encryptText } from "../encrypt";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 // sign in the user with credentials
 export async function signInWithCredentials(prevState : unknown, formDate: FormData) {
@@ -23,6 +24,16 @@ export async function signInWithCredentials(prevState : unknown, formDate: FormD
             email: formDate.get('email'),
             password: formDate.get('password')
         });
+        const cookieStore = await cookies();
+        const dbUser = await prisma.user.findUnique({
+          where: { email: credentials.email },
+          select: { termsAgreed: true },
+        });
+        if (dbUser?.termsAgreed) {
+          cookieStore.set('termsAgreed', 'true', { path: '/', maxAge: 60 * 60 * 24 * 30 });
+        } else {
+          cookieStore.delete('termsAgreed');
+        }
         const callbackUrl = typeof formDate.get('callbackUrl') === 'string'
           ? (formDate.get('callbackUrl') as string)
           : '/';
@@ -47,7 +58,7 @@ export async function signOutUser() {
 }
 
 //sign up a user 
-export async function signUpUser(prevState: unknown, formData: FormData) {
+export async function signUpUser(_prevState: unknown, formData: FormData) {
     try {
         const cookieStore = await cookies();
         const user = signUpFormSchema.parse({
@@ -90,6 +101,7 @@ export async function signUpUser(prevState: unknown, formData: FormData) {
         })
 
         cookieStore.delete('verifiedEmail');
+        cookieStore.set('termsAgreed', 'true', { path: '/', maxAge: 60 * 60 * 24 * 30 });
 
         return {
           success: true,
@@ -174,6 +186,47 @@ export async function requestEmailVerification(
     return { success: true, message: 'Verification email sent. Check your inbox.', verified: false };
   } catch (error) {
     return { success: false, message: formatError(error), verified: false };
+  }
+}
+
+export async function acceptTermsAndConsent(
+  prevState: { success: boolean; message: string; redirectTo: string },
+  formData: FormData
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, message: 'Not authenticated', redirectTo: '' };
+    }
+
+    const termsAgreed = formData.get('termsAgreed');
+    const marketingConsent = formData.get('marketingConsent');
+    const callbackUrl = typeof formData.get('callbackUrl') === 'string' ? (formData.get('callbackUrl') as string) : '/';
+
+    const termsChecked = termsAgreed === 'on' || termsAgreed === 'true';
+    const marketingChecked = marketingConsent === 'on' || marketingConsent === 'true';
+
+    if (!termsChecked) {
+      return { success: false, message: 'You must agree to the terms', redirectTo: '' };
+    }
+
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        termsAgreed: true,
+        termsAgreedAt: new Date(),
+        marketingConsent: marketingChecked,
+        marketingConsentAt: marketingChecked ? new Date() : null,
+      },
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set('termsAgreed', 'true', { path: '/', maxAge: 60 * 60 * 24 * 30 });
+    cookieStore.delete('needsConsent');
+
+    return { success: true, message: 'Consent recorded', redirectTo: callbackUrl || '/' };
+  } catch (error) {
+    return { success: false, message: formatError(error), redirectTo: '' };
   }
 }
 

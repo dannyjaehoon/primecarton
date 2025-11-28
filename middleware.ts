@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Array of regex patterns of paths we want to pretect
   const protectedPaths = [
     /\/shipping-address/,
@@ -36,6 +36,24 @@ export function middleware(request: NextRequest) {
   if (!request.cookies.get("sessionCartId")) {
     const sessionCartId = crypto.randomUUID();
     response.cookies.set("sessionCartId", sessionCartId);
+  }
+
+  // 정적/내부 리소스는 동의 체크 스킵
+  const isStaticAsset =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/images") ||
+    pathname.startsWith("/assets");
+  if (isStaticAsset) return response;
+
+  const consentBypass = [/\/consent/, /\/api\/auth\//, /\/sign-out/, /\/sign-in/, /\/terms/, /\/privacy/];
+  const isConsentBypass = consentBypass.some((p) => p.test(pathname));
+  const termsCookie = request.cookies.get("termsAgreed")?.value === "true";
+
+  if (isAuthenticated && !termsCookie && !isConsentBypass) {
+    const consentUrl = new URL("/consent", request.url);
+    consentUrl.searchParams.set("callbackUrl", pathname + request.nextUrl.search);
+    return NextResponse.redirect(consentUrl);
   }
 
   return response;
