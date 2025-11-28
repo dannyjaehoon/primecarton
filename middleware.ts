@@ -18,7 +18,9 @@ export async function middleware(request: NextRequest) {
   const isProtected = protectedPaths.some((p) => p.test(pathname));
 
   // 2. 로그인 여부 체크 (authjs.session-token 쿠키 있는지)
-  const authToken = request.cookies.get("authjs.session-token")?.value;
+  const authToken =
+    request.cookies.get("__Secure-authjs.session-token")?.value ||
+    request.cookies.get("authjs.session-token")?.value;
   const isAuthenticated = !!authToken;
 
   // 3. 로그인 안 했는데 보호된 경로 접근 → /login 으로 보냄
